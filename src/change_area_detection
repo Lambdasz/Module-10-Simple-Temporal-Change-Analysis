@@ -1,0 +1,127 @@
+"""M10.7 - Change Area Detection"""
+
+from change_magnitude import calculate_change_magnitude
+
+
+def detect_significant_change_areas(
+    before_values,
+    after_values,
+    threshold=10.0,
+):
+    """
+    Mengidentifikasi lokasi yang mengalami perubahan signifikan
+    berdasarkan hasil analisis magnitude (M10.6).
+    """
+
+    if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+        raise TypeError("threshold harus berupa angka")
+
+    if threshold < 0:
+        raise ValueError("threshold tidak boleh negatif")
+
+    magnitude_results = calculate_change_magnitude(
+        before_values,
+        after_values,
+    )
+
+    return [
+        {
+            **item,
+            "significant": item["magnitude"] >= threshold,
+        }
+        for item in magnitude_results
+    ]
+
+
+def get_significant_areas(results):
+    """Mengambil daftar lokasi yang terdeteksi mengalami perubahan signifikan."""
+
+    if not isinstance(results, list):
+        raise TypeError("results harus berupa list")
+
+    return [item for item in results if item.get("significant")]
+
+
+# ==========================================
+# DATA DUMMY DAN PENGUJIAN M10.7
+# ==========================================
+
+if __name__ == "__main__":
+    before_values = {
+        "area-A": 60.0,
+        "area-B": 50.0,
+        "area-C": 75.0,
+    }
+
+    after_values = {
+        "area-A": 72.0,
+        "area-B": 52.0,
+        "area-C": 55.0,
+    }
+
+    results = detect_significant_change_areas(
+        before_values,
+        after_values,
+        threshold=10.0,
+    )
+
+    print("=== M10.7 CHANGE AREA DETECTION ===")
+
+    for item in results:
+        status = "SIGNIFIKAN" if item["significant"] else "TIDAK SIGNIFIKAN"
+        print(
+            f'{item["location_id"]}: '
+            f'magnitude {item["magnitude"]:.2f} '
+            f'({status})'
+        )
+
+    print("\nLokasi yang mengalami perubahan signifikan:")
+
+    for item in get_significant_areas(results):
+        print(
+            f'- {item["location_id"]} '
+            f'(perubahan {item["change"]:+.2f}, kategori {item["level"]})'
+        )
+
+    print("\n=== PENGUJIAN TAMBAHAN M10.7 ===")
+
+    # Tes 1: Lokasi berbeda harus menghasilkan error
+    try:
+        detect_significant_change_areas(
+            {"area-A": 60.0},
+            {"area-B": 70.0},
+        )
+    except ValueError:
+        print("[LULUS] Lokasi berbeda terdeteksi")
+
+    # Tes 2: Data input tidak boleh berubah (immutability)
+    before_original = before_values.copy()
+    after_original = after_values.copy()
+
+    detect_significant_change_areas(before_values, after_values)
+
+    if (
+        before_values == before_original
+        and after_values == after_original
+    ):
+        print("[LULUS] Data input tetap sama")
+
+    # Tes 3: Threshold negatif harus ditolak
+    try:
+        detect_significant_change_areas(
+            before_values,
+            after_values,
+            threshold=-5.0,
+        )
+    except ValueError:
+        print("[LULUS] Threshold negatif ditolak")
+
+    # Tes 4: Tidak ada perubahan signifikan
+    no_change_results = detect_significant_change_areas(
+        {"area-A": 50.0},
+        {"area-A": 52.0},
+        threshold=10.0,
+    )
+
+    if len(get_significant_areas(no_change_results)) == 0:
+        print("[LULUS] Tidak ada perubahan signifikan terdeteksi")
