@@ -1,0 +1,145 @@
+"""M10.6 - Change Magnitude Analysis"""
+
+
+def classify_change_magnitude(magnitude):
+    """Mengkategorikan tingkat besaran perubahan (magnitude)."""
+
+    if not isinstance(magnitude, (int, float)) or isinstance(magnitude, bool):
+        raise TypeError("magnitude harus berupa angka")
+
+    if magnitude < 0:
+        raise ValueError("magnitude tidak boleh negatif")
+
+    if magnitude >= 15:
+        return "tinggi"
+    elif magnitude >= 5:
+        return "sedang"
+    else:
+        return "rendah"
+
+
+def calculate_change_magnitude(before_values, after_values):
+    """
+    Menghitung besaran perubahan (magnitude) yang diamati pada dua periode.
+
+    before_values dan after_values berbentuk:
+    {location_id: nilai_pengamatan}
+    """
+
+    if not isinstance(before_values, dict):
+        raise TypeError("before_values harus berupa dictionary")
+
+    if not isinstance(after_values, dict):
+        raise TypeError("after_values harus berupa dictionary")
+
+    if set(before_values) != set(after_values):
+        raise ValueError(
+            "Lokasi pada kedua periode harus sama"
+        )
+
+    for location_id in before_values:
+        for val in (before_values[location_id], after_values[location_id]):
+            if not isinstance(val, (int, float)) or isinstance(val, bool):
+                raise TypeError("Nilai pengamatan harus berupa angka")
+
+            if val < 0:
+                raise ValueError("Nilai pengamatan tidak boleh negatif")
+
+    return [
+        {
+            "location_id": location_id,
+            "before": before_values[location_id],
+            "after": after_values[location_id],
+            "change": round(
+                after_values[location_id] - before_values[location_id], 2
+            ),
+            "magnitude": round(
+                abs(after_values[location_id] - before_values[location_id]), 2
+            ),
+            "direction": (
+                "meningkat"
+                if after_values[location_id] > before_values[location_id]
+                else "menurun"
+                if after_values[location_id] < before_values[location_id]
+                else "tetap"
+            ),
+            "level": classify_change_magnitude(
+                abs(after_values[location_id] - before_values[location_id])
+            ),
+        }
+        for location_id in sorted(before_values)
+    ]
+
+
+# ==========================================
+# DATA DUMMY DAN PENGUJIAN M10.6
+# ==========================================
+
+if __name__ == "__main__":
+    before_values = {
+        "area-A": 60.0,
+        "area-B": 50.0,
+        "area-C": 75.0,
+    }
+
+    after_values = {
+        "area-A": 72.0,
+        "area-B": 52.0,
+        "area-C": 55.0,
+    }
+
+    results = calculate_change_magnitude(
+        before_values,
+        after_values,
+    )
+
+    print("=== M10.6 CHANGE MAGNITUDE ANALYSIS ===")
+
+    for item in results:
+        print(
+            f'{item["location_id"]}: '
+            f'{item["before"]} -> {item["after"]} '
+            f'({item["direction"]}, perubahan {item["change"]:+.2f}, '
+            f'magnitude {item["magnitude"]:.2f}, kategori {item["level"]})'
+        )
+
+    print("\n=== PENGUJIAN TAMBAHAN M10.6 ===")
+
+    # Tes 1: Lokasi berbeda harus menghasilkan error
+    try:
+        calculate_change_magnitude(
+            {"area-A": 60.0},
+            {"area-B": 70.0},
+        )
+    except ValueError:
+        print("[LULUS] Lokasi berbeda terdeteksi")
+
+    # Tes 2: Data input tidak boleh berubah (immutability)
+    before_original = before_values.copy()
+    after_original = after_values.copy()
+
+    calculate_change_magnitude(before_values, after_values)
+
+    if (
+        before_values == before_original
+        and after_values == after_original
+    ):
+        print("[LULUS] Data input tetap sama")
+
+    # Tes 3: Nilai pengamatan negatif harus ditolak
+    try:
+        calculate_change_magnitude(
+            {"area-A": -10.0},
+            {"area-A": 20.0},
+        )
+    except ValueError:
+        print("[LULUS] Nilai negatif ditolak")
+
+    # Tes 4: Nilai bukan angka harus ditolak
+    try:
+        calculate_change_magnitude(
+            {"area-A": "60"},
+            {"area-A": 70.0},
+        )
+    except TypeError:
+        print("[LULUS] Nilai non-angka ditolak")
